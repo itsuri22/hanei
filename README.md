@@ -8,9 +8,11 @@ The recommended changes are listed in a separate text file with the following ×
 ○The new string to replace.
 
 
+
 ×The line to be deleted.
 
 ○
 
 The source code directory is given as command-line argument to the perl script as shown below.
+
 perl genmailparse.pl C:/myproject
