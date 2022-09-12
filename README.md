@@ -7,6 +7,7 @@ The recommended changes are listed in a separate text file with the following ×
 
 ○The new string to replace.
 
+
 ×The line to be deleted.
 
 ○
