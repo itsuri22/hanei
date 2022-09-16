@@ -1,113 +1,74 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
-use feature qw(say);
-use autodie;           # Turns file operations into exception based programming
 
-use File::Find;        # Your friend
-use File::Copy;        # For the "move" command
+use autodie;                            # to open/close succeed or die
+use File::Find;                         # to search through directory trees
+use File::Copy;                         # for the move command
 
-my $mail = "genmail.txt";
-open (FILE, $mail) || die "Cannot open file ".$mail." for read";
+open (RFILE, "genreview.txt");
 
-my $wrong;
-my $right;
+my $directory   = shift;                # input target directory as argument
+$directory = "." if not defined $directory;
 
-    my $directory   = shift;
+my @files;
+find(                                   # collect list of target files
+    sub {
+        return unless -f;               # files only
+        return unless  /\.c$/;          # name must end in "*.c"
+        push @files, $File::Find::name;
+    },
+    $directory
+);
 
-    $directory = "." if not defined $directory;
-
-    my @files;
-    find(
-        sub {
-            return unless -f;        # Files only
-            return unless  /\.*$/;    # Name must end in "*.*"
-            push @files, $File::Find::name;
-        },
-        $directory
-    );
-
-#
 #  Now let's go through those files and replace the contents
-#
 
-#for my $file ( @files ) {
-#    print $file."\n";
-#}
+for my $file ( @files ) {
 
-while (<FILE>)
-{
+    open my $input_fh, "<", $file;
+    my $content = do { local $/; <$input_fh> };
+    my $ccopy = $content;
 
-#### Parsing wrong and right ####
+    while ( <RFILE> ) {
 
-    my $line = $_;
-    my $tag = substr($line, 0, 2);
-    if ($tag eq "Å~") {
-        $wrong = substr($line, 2);
-    } else {
-        die "Invalid";
+        # parse 'from' string
+        my $from = "";
+        my $line = $_;
+        my $tag = substr($line, 0, 2);
+        while ($tag eq "Å~") {
+            $from .= substr($line, 2);
+            $line = <RFILE>;
+            $tag = substr($line, 0, 2);
+        }
+        if ($tag ne "Åõ") {
+            die "End of valid comments";
+        }
+
+        # parse 'to' string
+        my $to = "";
+        while ($tag eq "Åõ") {
+            $to .= substr($line, 2);
+            $line = <RFILE>;
+            $tag = substr($line, 0, 2);
+        }
+
+        chomp($from);
+        chomp($to);
+
+        # search and replace
+        $content =~ s/\Q$from\E/$to/g;
     }
 
-    $line = <FILE>;
-    $tag = substr($line, 0, 2);
-     if ($tag eq "Åõ") {
-        $right = substr($line, 2);
-    } else {
-        die "Invalid";
-    }
+    close $input_fh;
+    seek RFILE, 0, 0;
 
-    $line = <FILE>;
-
-#    print "Wrong".$wrong;
-#    print "Right".$right;
-
-#### search and replace ####
-
-# Usage = mungestrings.pl [<dir>]
-#         Default dir is current
-#
-    my $from_string = $wrong;
-    my $to_string   = $right;
-    
-    chomp($wrong);
-    chomp($right);
-#
-#  Now let's go through those files and replace the contents
-#
-
-    for my $file ( @files ) {
-#        print $file."\n";
-#        print $from_string;
-#        print $to_string;
-
-        open my $input_fh, "<", $file;
+    # replaced move temp file over original
+    if ($content ne $ccopy) {
         open my $output_fh, ">", "$file.tmp";
-        my $modified = 0;
-        for my $line ( <$input_fh> ) {
-            my $oline = $line;
-            $line =~ s/\Q$wrong\E/$right/g;
-            if (($line eq $oline) or (not($to_string =~/^$/))) {
-                print ${output_fh} $line;
-            }
-            if ($line ne $oline) {
-                $modified = 1;
-            }
-        }
-
-        #
-        # Contents been replaced move temp file over original
-        #
-        close $input_fh;
+        print ${output_fh} $content;
         close $output_fh;
-        if ($modified == 1) {
-            move "$file.tmp", $file;
-            print "modified".$file."\n"
-        }
-        else {
-            unlink "$file.tmp";
-            print "Not modified".$file."\n"
-        }
+        move "$file.tmp", $file;
+        print "modified".$file."\n"
     }
-
 }
-close FILE;
+close RFILE;
