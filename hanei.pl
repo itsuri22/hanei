@@ -15,15 +15,16 @@ my $directory   = shift;                # input target directory as argument
 $directory = "." if not defined $directory;
 
 my $tsrc = <RFILE>;
-die "Specify target source in text file!" unless $tsrc =~ /^--qr/;
+die "Specify target source in text file!" unless $tsrc =~ /^--/;
 $tsrc = substr($tsrc, 2); chomp($tsrc);
 <RFILE>;
 
+my $regex = qr/$tsrc/;
 my @files;
 find(                                   # collect list of target files
     sub {
         return unless -f;               # files only
-        return unless  /$tsrc/;         # target source files in regex
+        return unless /$regex/;         # target source files in regex
         push @files, $File::Find::name;
     },
     $directory

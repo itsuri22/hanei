@@ -1,4 +1,4 @@
---qr/^eth\*c$/
+--^eth*.*c$
 
 ~Start Timer
 ›Wakeup Timer unit
