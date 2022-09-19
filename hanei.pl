@@ -77,7 +77,9 @@ for my $file ( @files ) {
         print ${output_fh} $content;
         close $output_fh;
         move "$file.tmp", $file;
-        print "modified".$file."\n"
+        print "modified".$file."\n";
+    } else {
+        print "Not modified".$file."\n";
     }
 }
 close RFILE;
